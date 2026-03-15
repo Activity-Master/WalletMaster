@@ -12,8 +12,13 @@
     <artifactId>wallet-master</artifactId>
     <packaging>jar</packaging>
     <name>Wallet Master</name>
+
+    <properties>
+        <project.scm.nameUrl>/Activity-Master/WalletMaster</project.scm.nameUrl>
+    </properties>
 	
     <dependencies>
      
     </dependencies>
+
 </project>
