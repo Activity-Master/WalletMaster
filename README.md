@@ -19,7 +19,7 @@ Transfer, deposit, withdrawal and reversal are Event classifications under
 derived Arrangement projections; the installer does not write projection values.
 Existing Products can be related through `TransactionXProduct`; wallet setup
 does not create catalog products or product types.
-Apply the managed `transactions.sql` migration before running enterprise updates.
+Apply the managed `16.transactions.sql` migration before running enterprise updates.
 Debit and credit `TransactionType` rows are EntityAssist warehouse entities.
 Posted `Transaction` rows and their `TransactionXTransactionType` links are also
 ActivityMaster warehouse entities with security rows, all under the same
