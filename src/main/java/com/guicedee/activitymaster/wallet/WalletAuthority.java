@@ -35,7 +35,7 @@ final class WalletAuthority implements TransactionService.Authority {
     private Uni<Void> active(Mutiny.StatelessSession session, String table, String key, UUID id) {
         return session.createNativeQuery("select 1 from "+table+" r join dbo.activeflag f on f.activeflagid=r.activeflagid "
                         +"where r."+key+"=:id and r.enterpriseid=:enterprise and f.allowaccess=1 "
-                        +"and r.effectivefromdate<=statement_timestamp() and r.effectivetodate>statement_timestamp() for share of r,f",Integer.class)
+                        +"and r.effectivefromdate<=statement_timestamp() and r.effectivetodate>statement_timestamp()",Integer.class)
                 .setParameter("id",id).setParameter("enterprise",identity.enterpriseId()).getResultList()
                 .chain(rows -> require(!rows.isEmpty()));
     }

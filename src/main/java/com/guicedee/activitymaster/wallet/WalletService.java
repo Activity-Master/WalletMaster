@@ -124,7 +124,7 @@ public final class WalletService implements IWalletService<WalletService> {
         return session.createNativeQuery("select 1 from arrangement.arrangementxarrangementtype x "
                         +"join arrangement.arrangementtype t on t.arrangementtypeid=x.arrangementtypeid "
                         +"where x.arrangementid=:id and x.enterpriseid=:enterprise and t.enterpriseid=:enterprise "
-                        +"and t.arrangementtypename=:type and x.effectivefromdate<=statement_timestamp() and x.effectivetodate>statement_timestamp() for share of x,t",Integer.class)
+                        +"and t.arrangementtypename=:type and x.effectivefromdate<=statement_timestamp() and x.effectivetodate>statement_timestamp()",Integer.class)
                 .setParameter("id",id).setParameter("enterprise",system.getEnterprise().getId()).setParameter("type",type)
                 .getResultList().chain(rows -> WalletAuthority.require(!rows.isEmpty()));
     }
