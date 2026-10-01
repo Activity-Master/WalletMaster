@@ -1,12 +1,12 @@
 package com.guicedee.activitymaster.wallet;
 
-import com.guicedee.activitymaster.fsdm.client.services.administration.MasterDefaultSystem;
+import com.guicedee.activitymaster.fsdm.client.services.administration.MasterDefaultPlugin;
 import com.guicedee.activitymaster.fsdm.client.services.builders.warehouse.enterprise.IEnterprise;
 import io.smallrye.mutiny.Uni;
 import org.hibernate.reactive.mutiny.Mutiny;
 
 /** Registers the Wallet Master capability; FSDM Arrangements and Events remain canonical. */
-public final class WalletSystem extends MasterDefaultSystem<WalletSystem> {
+public final class WalletSystem extends MasterDefaultPlugin<WalletSystem> {
     public static final String NAME = "Wallet Master";
     public static final String WALLET_ARRANGEMENT_TYPE = "Wallet";
     public static final String CLEARING_ARRANGEMENT_TYPE = "Wallet Clearing";

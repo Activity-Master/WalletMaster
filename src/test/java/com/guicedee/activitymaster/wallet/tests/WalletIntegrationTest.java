@@ -37,6 +37,7 @@ class WalletIntegrationTest {
     private PostgreSQLContainer<?> postgres;
     private ScopedFsdmFixture scoped;
     @BeforeAll void boot() throws Exception {
+        System.setProperty("HTTP_PORT", "0");
         Class<?> database=Class.forName("com.guicedee.activitymaster.PostgreSQLTestDBModule");
         var getContainer=database.getMethod("getPostgresContainer"); getContainer.setAccessible(true);
         postgres=(PostgreSQLContainer<?>)getContainer.invoke(null);
@@ -73,10 +74,11 @@ class WalletIntegrationTest {
                 .chain(enterprise -> enterprises.loadUpdates(session,enterprise))));
         identity=await(SessionUtils.withActivityMaster(ENTERPRISE,WalletSystem.NAME,tuple -> {
             systemId=tuple.getItem3().getId();
-            return tuple.getItem1().createNativeQuery("select involvedpartyid from party.involvedparty where enterpriseid=:enterprise limit 1",UUID.class)
-                    .setParameter("enterprise",tuple.getItem2().getId()).getSingleResult()
-                    .map(party -> new WalletIdentity(party,tuple.getItem2().getId(),new Context(Realm.WORK,tuple.getItem2().getId()),tuple.getItem4()[0]));
+            return com.guicedee.activitymaster.BuiltInPluginFixture.administrator(tuple.getItem1(), tuple.getItem2())
+                    .map(user -> new WalletIdentity(user.partyId(), user.enterpriseId(),
+                            new Context(Realm.WORK, user.enterpriseId()), user.identityToken()));
         }));
+        provisionBuiltin(WalletSystem.NAME);
         provisionGrants();
         IWalletService<?> service=IGuiceContext.get(IWalletService.class);
         api=new WalletApi(() -> Uni.createFrom().item(identity),service);
@@ -85,6 +87,20 @@ class WalletIntegrationTest {
         sql("UPDATE arrangement.arrangementxarrangementtype SET arrangementtypeid=(SELECT arrangementtypeid FROM arrangement.arrangementtype WHERE arrangementtypename='Wallet Clearing' AND enterpriseid='"+identity.enterpriseId()+"') WHERE arrangementid='"+clearing+"'");
         writeQueryStats("wallet-setup-queries.csv");
         sql("SELECT pg_stat_statements_reset()");
+    }
+    private void provisionBuiltin(String name) {
+        var plugins = IGuiceContext.get(com.guicedee.activitymaster.fsdm.plugins.PluginService.class);
+        var user = new com.guicedee.activitymaster.fsdm.plugins.PluginModels.Identity(identity.partyId(), identity.enterpriseId(), identity.identityToken());
+        await(SessionUtils.withActivityMaster(ENTERPRISE, name, t ->
+                plugins.find(t.getItem1(), t.getItem3(), user, t.getItem3().getId())
+                        .chain(plugin -> plugins.install(t.getItem1(), t.getItem3(), user, plugin.id(), identity.installationPartyId())
+                                .chain(() -> {
+                                    Uni<Void> chain = Uni.createFrom().voidItem();
+                                    for (UUID dependency : plugin.systems())
+                                        chain = chain.chain(() -> plugins.consent(t.getItem1(), t.getItem3(), user,
+                                                new com.guicedee.activitymaster.fsdm.plugins.PluginModels.Invocation(plugin.id(), identity.installationPartyId()), dependency, true));
+                                    return chain;
+                                }))));
     }
     @AfterAll void writeQueryPerformance() throws Exception {
         writeQueryStats("wallet-postgres-queries.csv");
@@ -110,6 +126,21 @@ class WalletIntegrationTest {
         scoped.install(systemId,"WORK",identity.enterpriseId(),"wallet");
         for(String action:List.of("create","read","post","transfer","deposit","withdrawal")) {
             scoped.grant(systemId,"WORK",identity.enterpriseId(),"wallet",identity.partyId(),"wallet."+action);
+        }
+    }
+    @Test void administratorCanDisableTheWalletPluginDependency() {
+        var plugins = IGuiceContext.get(com.guicedee.activitymaster.fsdm.plugins.PluginService.class);
+        var user = new com.guicedee.activitymaster.fsdm.plugins.PluginModels.Identity(
+                identity.partyId(), identity.enterpriseId(), identity.identityToken());
+        UUID dependency = await(SessionUtils.withActivityMaster(ENTERPRISE, WalletSystem.NAME, t ->
+                plugins.find(t.getItem1(), t.getItem3(), user, systemId).map(plugin -> plugin.systems().iterator().next())));
+        await(SessionUtils.withActivityMaster(ENTERPRISE, WalletSystem.NAME, t ->
+                plugins.setSystemAccess(t.getItem1(), t.getItem3(), user, systemId, dependency, null, false)));
+        try {
+            assertThrows(SecurityException.class, () -> api.balance(ENTERPRISE, clearing, "POINTS").await().atMost(Duration.ofSeconds(30)));
+        } finally {
+            await(SessionUtils.withActivityMaster(ENTERPRISE, WalletSystem.NAME, t ->
+                    plugins.setSystemAccess(t.getItem1(), t.getItem3(), user, systemId, dependency, null, true)));
         }
     }
     @Test void productionDepositTransferWithdrawalAndRetryAreAtomic() {

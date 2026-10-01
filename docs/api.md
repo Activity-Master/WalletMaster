@@ -6,6 +6,12 @@ schema provider, following Cerial Master. The consuming host owns authentication
 Realm/context and ActivityMaster identity token. The default provider denies
 access. These values never come from a wallet request body or GraphQL argument.
 
+Wallet Master registers as a built-in Plugin under Plugins. Before invoking it,
+the host installs its catalogue registration on the authorized party through
+`PluginService` and obtains the current user's consent to Activity Master System.
+Every operation checks this installation, consent and administrator policy in
+addition to the provider behavior grants and row permissions described below.
+
 ```mermaid
 sequenceDiagram
     participant Caller
@@ -68,6 +74,9 @@ The four-argument identity constructor defaults the provider ID to `wallet`;
 use the five-argument constructor for a separately reviewed provider per system
 or enterprise. Wallet validates that the provider maps to its enterprise's
 Wallet Master system. Do not retain a caller identity in a shared singleton.
+The four- and five-argument constructors use the actor's party as the installation
+party. The six-argument constructor accepts a verified organisation installation
+party; organisation installation still requires each user's own consent.
 
 Grant the provider-qualified behaviors `wallet.create`, `wallet.read`,
 `wallet.post`, `wallet.transfer`, `wallet.deposit`, and `wallet.withdrawal` as

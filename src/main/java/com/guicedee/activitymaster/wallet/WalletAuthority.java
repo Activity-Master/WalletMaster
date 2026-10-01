@@ -17,7 +17,10 @@ final class WalletAuthority implements TransactionService.Authority {
     WalletAuthority(WalletIdentity identity, ISystems<?, ?> system) { this.identity=identity; this.system=system; }
     public Uni<Void> currentActor(Mutiny.StatelessSession session, Actor actor, Context context) {
         if (!identity.partyId().equals(actor.partyId()) || !identity.context().equals(context)) return denied();
-        return active(session,"party.involvedparty","involvedpartyid",actor.partyId())
+        return com.guicedee.client.IGuiceContext.get(com.guicedee.activitymaster.fsdm.plugins.PluginService.class)
+                .checkBuiltIn(session, system, new com.guicedee.activitymaster.fsdm.plugins.PluginModels.Identity(
+                        identity.partyId(), identity.enterpriseId(), identity.identityToken()), identity.installationPartyId())
+                .chain(() -> active(session,"party.involvedparty","involvedpartyid",actor.partyId()))
                 .chain(() -> new InvolvedParty().setId(actor.partyId()).canRead(session,system,identity.tokens()))
                 .chain(WalletAuthority::require);
     }

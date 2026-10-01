@@ -15,7 +15,7 @@ module com.guicedee.activitymaster.wallet {
         with com.guicedee.activitymaster.wallet.WalletInclusionModule;
     provides com.guicedee.vertx.graphql.services.IGraphQLSchemaProvider
         with com.guicedee.activitymaster.wallet.graphql.WalletGraphQLSchemaProvider;
-    provides com.guicedee.activitymaster.fsdm.client.services.systems.IMasterSystem
+    provides com.guicedee.activitymaster.fsdm.client.services.systems.IMasterPlugin
         with com.guicedee.activitymaster.wallet.WalletSystem;
     provides com.guicedee.activitymaster.fsdm.client.services.systems.ISystemUpdate
         with com.guicedee.activitymaster.wallet.WalletSystemInstall;

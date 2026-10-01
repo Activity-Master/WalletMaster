@@ -28,9 +28,14 @@ public final class WalletSystemInstall implements ISystemUpdate {
         IArrangementsService<?> arrangements = IGuiceContext.get(IArrangementsService.class);
         IEventService<?> events = IGuiceContext.get(IEventService.class);
         IClassificationService<?> classifications = IGuiceContext.get(IClassificationService.class);
-        return wallet.getSystem(session, enterprise)
-                .chain(system -> wallet.getSystemToken(session, enterprise)
-                        .chain(token -> arrangements.createArrangementType(session,
+        com.guicedee.activitymaster.fsdm.client.services.ISystemsService<?> systems =
+                IGuiceContext.get(com.guicedee.activitymaster.fsdm.client.services.ISystemsService.class);
+        return systems.getActivityMaster(session, enterprise)
+                .chain(core -> systems.getSecurityIdentityToken(session, core)
+                        .chain(token -> IGuiceContext.get(com.guicedee.activitymaster.fsdm.plugins.PluginService.class)
+                                .registerBuiltIn(session, core, token, wallet)
+                                .chain(() -> wallet.getSystem(session, enterprise))
+                                .chain(system -> arrangements.createArrangementType(session,
                                         WalletSystem.WALLET_ARRANGEMENT_TYPE, system, token)
                                 .chain(() -> arrangements.createArrangementType(session,
                                         WalletSystem.CLEARING_ARRANGEMENT_TYPE, system, token))
@@ -41,7 +46,7 @@ public final class WalletSystemInstall implements ISystemUpdate {
                                 .chain(() -> new TransactionService("wallet", system.getId())
                                         .ensureType(session, enterprise, system, "debit", (short) -1, token))
                                 .chain(() -> new TransactionService("wallet", system.getId())
-                                        .ensureType(session, enterprise, system, "credit", (short) 1, token))))
+                                        .ensureType(session, enterprise, system, "credit", (short) 1, token)))))
                 .replaceWith(Boolean.TRUE);
     }
 
